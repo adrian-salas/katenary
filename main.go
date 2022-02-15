@@ -83,9 +83,18 @@ func main() {
 		},
 	}
 
+	//updateCmd := &cobra.Command{
+	//	Use:   "update",
+	//	Short: "update katenary",
+	//	Run: func(c *cobra.Command, args []string) {
+	//		cmd.Update()
+	//	},
+	//}
+
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(convertCmd)
 	rootCmd.AddCommand(showLabelsCmd)
+	//rootCmd.AddCommand(updateCmd)
 
 	rootCmd.Execute()
 

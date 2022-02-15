@@ -37,8 +37,9 @@ const (
 )
 
 // Values is kept in memory to create a values.yaml file.
-var Values = make(map[string]map[string]interface{})
-var VolumeValues = make(map[string]map[string]map[string]interface{})
+var Values = helm.Values{}
+
+var VolumeValues = make(map[string]map[string]map[string]interface{}) //TODO: use a type
 
 var dependScript = `
 OK=0
@@ -65,14 +66,14 @@ func parseService(name string, s *compose.Service, ret chan interface{}) {
 	o := helm.NewDeployment(name)
 	container := helm.NewContainer(name, s.Image, s.Environment, s.Labels)
 
-	// prepare cm and secrets
-	prepareEnvFromFiles(name, s, container, ret)
-
 	// check the image, and make it "variable" in values.yaml
 	container.Image = "{{ .Values." + name + ".image }}"
 	Values[name] = map[string]interface{}{
 		"image": s.Image,
 	}
+
+	// prepare cm and secrets
+	prepareEnvFromFiles(name, s, container, ret)
 
 	// manage the healthcheck property, if any
 	prepareProbes(name, s, container)
@@ -552,12 +553,14 @@ func prepareEnvFromFiles(name string, s *compose.Service, container *helm.Contai
 			Bluef(ICON_SECRET+" Generating secret %s\n", cf)
 			store = helm.NewSecret(cf)
 		}
-		if err := store.AddEnvFile(envfile); err != nil {
+		locker.Lock()
+		if err := store.AddEnvFile(envfile, name, &Values); err != nil {
 			ActivateColors = true
 			Red(err.Error())
 			ActivateColors = false
 			os.Exit(2)
 		}
+		locker.Unlock()
 
 		section := "configMapRef"
 		if isSecret {
